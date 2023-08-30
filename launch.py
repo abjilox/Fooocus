@@ -102,6 +102,7 @@ if args.cuda_device is not None:
     print("Set device to:", args.cuda_device)
 
 
-download_models()
+if not os.environ.get('SKIP_DOWNLOAD_MODELS', False):
+    download_models()
 
 from webui import *
