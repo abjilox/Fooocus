@@ -1,6 +1,231 @@
-**(2023 Nov 26) Hi all, the feature updating of Fooocus will be paused for about two or three weeks because we have some other workloads. See you soon and we will come back in mid December. However, you may still see updates if other collaborators are fixing bugs or solving problems.**
+# [2.5.5](https://github.com/lllyasviel/Fooocus/releases/tag/v2.5.5)
+
+* Fix colab inpaint issue by moving an import statement
+
+# [2.5.4](https://github.com/lllyasviel/Fooocus/releases/tag/v2.5.4)
+
+* Fix validation for default_ip_image_* and default_inpaint_mask_sam_model
+* Fix enhance mask debugging in combination with image sorting
+* Fix loading of checkpoints and LoRAs when using multiple directories in config and then switching presets
+
+# [2.5.3](https://github.com/lllyasviel/Fooocus/releases/tag/v2.5.3)
+
+* Only load weights from non-safetensors files, preventing harmful code injection
+* Add checkbox for applying/resetting styles when describing images, also allowing multiple describe content types
+
+# [2.5.2](https://github.com/lllyasviel/Fooocus/releases/tag/v2.5.2)
+
+* Fix not adding positive prompt when styles didn't have a {prompt} placeholder in the positive prompt
+* Extend config settings for input image, see list in [PR](https://github.com/lllyasviel/Fooocus/pull/3382)
+
+# [2.5.1](https://github.com/lllyasviel/Fooocus/releases/tag/v2.5.1)
+
+* Update download URL in readme
+* Increase speed of metadata loading
+* Fix reading of metadata from jpeg, jpg and webp (exif)
+* Fix debug preprocessor
+* Update attributes and add inline prompt features section to readme
+* Add checkbox, config and handling for saving only the final enhanced image. Use config `default_save_only_final_enhanced_image`, default False.
+* Add sorting of final images when enhanced is enabled. Use argument `--disable-enhance-output-sorting` to disable.
+
+# [2.5.0](https://github.com/lllyasviel/Fooocus/releases/tag/v2.5.0)
+
+This version includes various package updates. If the auto-update doesn't work you can do one of the following:
+1. Open a terminal in the Fooocus folder (location of config.txt) and run `git pull`
+2. Update packages
+   - Windows (installation through zip file): open a terminal in the Fooocus folder (location of config.txt) `..\python_embeded\python.exe -m pip install -r .\requirements_versions.txt` (Windows using embedded python, installation method zip file) or download Fooocus again (zip file attached to this release)
+   - other: manually update the packages using `python.exe -m pip install -r requirements_versions.txt` or use the docker image
+
+---
+
+* Update python dependencies, add segment_anything
+* Add enhance feature, which offers easy image refinement steps (similar to adetailer, but based on dynamic image detection instead of specific mask detection models). See [documentation](https://github.com/lllyasviel/Fooocus/discussions/3281).
+* Rewrite async worker code, make code much more reusable to allow iterations and improve reusability
+* Improve GroundingDINO and SAM image masking
+* Fix inference tensor version counter tracking issue for GroundingDINO after using Enhance (see [discussion](https://github.com/lllyasviel/Fooocus/discussions/3213))
+* Move checkboxes Enable Mask Upload and Invert Mask When Generating from Developer Debug Mode to Inpaint Or Outpaint
+* Add persistent model cache for metadata. Use `--rebuild-hash-cache X` (X = int, number of CPU cores, default all) to manually rebuild the cache for all non-cached hashes
+* Rename `--enable-describe-uov-image` to `--enable-auto-describe-image`, now also works for enhance image upload
+* Rename checkbox `Enable Mask Upload` to `Enable Advanced Masking Features` to better hint to mask auto-generation feature
+* Get upscale model filepath by calling downloading_upscale_model() to ensure the model exists
+* Rename tab titles and translations from singular to plural
+* Rename document to documentation
+* Update default models to latest versions
+  * animaPencilXL_v400 => animaPencilXL_v500
+  * DreamShaperXL_Turbo_dpmppSdeKarras => DreamShaperXL_Turbo_v2_1
+  * SDXL_FILM_PHOTOGRAPHY_STYLE_BetaV0.4 => SDXL_FILM_PHOTOGRAPHY_STYLE_V1
+* Add preset for pony_v6 (using ponyDiffusionV6XL)
+* Add style `Fooocus Pony`
+* Add restart sampler ([paper](https://arxiv.org/abs/2306.14878))
+* Add config option for default_inpaint_engine_version, sets inpaint engine for pony_v6 and playground_v2.5 to None for improved results (incompatible with inpaint engine)
+* Add image editor functionality to mask upload (same as for inpaint, now correctly resizes and allows more detailed mask creation)
+
+# [2.4.3](https://github.com/lllyasviel/Fooocus/releases/tag/v2.4.3)
+
+* Fix alphas_cumprod setter for TCD sampler
+* Add parser for env var strings to expected config value types to allow override of all non-path config keys 
+
+# [2.4.2](https://github.com/lllyasviel/Fooocus/releases/tag/v2.4.2)
+
+* Fix some small bugs (tcd scheduler when gamma is 0, chown in Dockerfile, update cmd args in readme, translation for aspect ratios, vae default after file reload)
+* Fix performance LoRA replacement when data is loaded from history log and inline prompt
+* Add support and preset for playground v2.5 (only works with performance Quality or Speed, use with scheduler edm_playground_v2)
+* Make textboxes (incl. positive prompt) resizable
+* Hide intermediate images when performance of Gradio would bottleneck the generation process (Extreme Speed, Lightning, Hyper-SD)
+
+# [2.4.1](https://github.com/lllyasviel/Fooocus/releases/tag/v2.4.1)
+
+* Fix some small bugs (e.g. adjust clip skip default value from 1 to 2, add type check to aspect ratios js update function)
+* Add automated docker build on push to main, tagged with `edge`. See [available docker images](https://github.com/lllyasviel/Fooocus/pkgs/container/fooocus).
+
+# [2.4.0](https://github.com/lllyasviel/Fooocus/releases/tag/v2.4.0)
+
+* Change settings tab elements to be more compact
+* Add clip skip slider
+* Add select for custom VAE
+* Add new style "Random Style"
+* Update default anime model to animaPencilXL_v310
+* Add button to reconnect the UI after Fooocus crashed without having to configure everything again (no page reload required)
+* Add performance "hyper-sd" (based on [Hyper-SDXL 4 step LoRA](https://huggingface.co/ByteDance/Hyper-SD/blob/main/Hyper-SDXL-4steps-lora.safetensors))
+* Add [AlignYourSteps](https://research.nvidia.com/labs/toronto-ai/AlignYourSteps/) scheduler by Nvidia, see 
+* Add [TCD](https://github.com/jabir-zheng/TCD) sampler and scheduler (based on sgm_uniform)
+* Add NSFW image censoring (disables intermediate image preview while generating). Set config value `default_black_out_nsfw` to True to always enable.
+* Add argument `--enable-describe-uov-image` to automatically describe uploaded images for upscaling
+* Add inline lora prompt references with subfolder support, example prompt: `colorful bird <lora:toucan:1.2>`
+* Add size and aspect ratio recommendation on image describe
+* Add inpaint brush color picker, helpful when image and mask brush have the same color
+* Add automated Docker image build using Github Actions on each release.
+* Add full raw prompts to history logs
+* Change code ownership from @lllyasviel to @mashb1t for automated issue / MR notification
+
+# [2.3.1](https://github.com/lllyasviel/Fooocus/releases/tag/2.3.1)
+
+* Remove positive prompt from anime prefix to not reset prompt after switching presets
+* Fix image number being reset to 1 when switching preset, now doesn't reset anymore
+* Fix outpainting dimension calculation when extending left/right
+* Fix LoRA compatibility for LoRAs in a1111 metadata scheme
+
+# [2.3.0](https://github.com/lllyasviel/Fooocus/releases/tag/2.3.0)
+
+* Add performance "lightning" (based on [SDXL-Lightning 4 step LoRA](https://huggingface.co/ByteDance/SDXL-Lightning/blob/main/sdxl_lightning_4step_lora.safetensors))
+* Add preset selection to UI, disable with argument `--disable-preset-selection`. Use `--always-download-new-model` to download missing models on preset switch.
+* Improve face swap consistency by switching later in the process to (synthetic) refiner
+* Add temp path cleanup on startup
+* Add support for wildcard subdirectories
+* Add scrollable 2 column layout for styles for better structure
+* Improve Colab resource needs for T4 instances (default), positively tested with all image prompt features
+* Improve anime preset, now uses style `Fooocus Semi Realistic` instead of `Fooocus Negative` (less wet look images)
+
+# [2.2.1](https://github.com/lllyasviel/Fooocus/releases/tag/2.2.1)
+
+* Fix some small bugs (e.g. image grid, upscale fast 2x, LoRA weight width in Firefox)
+* Allow prompt weights in array syntax
+* Add steps override and metadata scheme to history log
+
+# [2.2.0](https://github.com/lllyasviel/Fooocus/releases/tag/2.2.0)
+
+* Isolate every image generation to truly allow multi-user usage
+* Add array support, changes the main prompt when increasing the image number. Syntax: `[[red, green, blue]] flower` 
+* Add optional metadata to images, allowing you to regenerate and modify them later with the same parameters 
+* Now supports native PNG, JPG and WEBP image generation
+* Add Docker support
+
+# [2.1.865](https://github.com/lllyasviel/Fooocus/releases/tag/2.1.865)
+
+* Various bugfixes
+* Add authentication to --listen
+
+# 2.1.864
+
+* New model list. See also discussions.
+
+# 2.1.861 (requested update)
+
+(2023 Dec 21) Hi all, the feature updating of Fooocus will be paused for about two or three weeks because we have some other workloads. See you soon and we will come back in mid or late Jan. However, you may still see updates if other collaborators are fixing bugs or solving problems.
+
+* Show image preview in Style when mouse hover.
+
+# 2.1.860 (requested update)
+
+* Allow upload inpaint mask in developer mode.
+
+# 2.1.857 (requested update)
+
+* Begin to support 8GB AMD GPU on Windows.
+
+# 2.1.854
+
+* Add a button to copy parameters to clipboard in log.
+* Allow users to load parameters directly by pasting parameters to prompt.
+
+# 2.1.853
+
+* Add Marc K3nt3L's styles. Thanks [Marc K3nt3L](https://github.com/K3nt3L)!
+
+# 2.1.852
+
+* New Log System: Log system now uses tables. If this is breaking some other browser extension or javascript developments, see also [use previous version](https://github.com/lllyasviel/Fooocus/discussions/1405).
+
+# 2.1.846
+
+* Many users reported that image quality is different from 2.1.824. We reviewed all codes and fixed several precision problems in 2.1.846.
+
+# 2.1.843
+
+* Many improvements to Canvas. Thanks CanvasZoom author!
+
+# 2.1.841
+
+* Backend maintain.
+* Fix some potential frozen after model mismatch.
+* Fix crash when cfg=1 when using anime preset.
+* Added some guidelines for troubleshoot the "CUDA kernel errors asynchronously" problem.
+* Fix inpaint device problem in `--always-gpu` mode.
+
+# 2.1.839
+
+* Maintained some computation codes in backend for efficiency.
+* Added a note about Seed Breaking Change.
+
+**Seed Breaking Change**: Note that 2.1.825-2.1.839 is seed breaking change. The computation float point is changed and some seeds may give slightly different results. The minor change in 2.1.825-2.1.839 do not influence image quality. See also [use previous version](https://github.com/lllyasviel/Fooocus/discussions/1405).
+
+# 2.1.837
+
+* Fix some precision-related problems.
+
+# 2.1.836
+
+* Avoid blip tokenizer download from torch hub
+
+# 2.1.831
+
+* Input Image -> Describe (Midjourney Describe)
+
+# 2.1.830
+
+* SegmindVega support.
+
+# 2.1.829
+
+* Change SDE tree to CPU on AMD/DirectMl to avoid potential problems.
+
+# 2.1.828
+
+* Allow to disable gradio analytics.
+* Use html table in log.
+* fix some SSL problems.
+
+# 2.1.826
+
+* New backend.
+* FP8 support (see also the new cmd flag list in Readme, eg, --unet-in-fp8-e4m3fn and --unet-in-fp8-e5m2).
+* Fix some MPS problems.
+* GLoRA support.
+* Turbo scheduler.
 
 # 2.1.823
+
+(2023 Nov 26) Hi all, the feature updating of Fooocus will be paused for about two or three weeks because we have some other workloads. See you soon and we will come back in mid December. However, you may still see updates if other collaborators are fixing bugs or solving problems.
 
 * Fix some potential problem when LoRAs has clip keys and user want to load those LoRAs to refiners.
 
