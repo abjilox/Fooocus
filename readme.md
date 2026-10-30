@@ -115,7 +115,7 @@ See also the common problems and troubleshoots [here](troubleshoot.md).
 | --- | --- |
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/abjilox/Fooocus/blob/better-colab/colab.ipynb) | This fork (current Colab GPU runtime)
 
-In Colab, run **Setup**, then **Start**. Select the edition with the `PRESET` field. The notebook uses this fork, preserves Colab’s installed GPU stack, and keeps active files on local disk with a persistent Google Drive copy. See [Colab setup and acceptance checks](docs/colab.md); GPU acceptance is still pending.
+In Colab, run **Konfiguration** and **Start**. On the first use only, run **Einrichtung / Cache erstellen** between them. Select the edition with the `PRESET` field. The notebook restores verified additional packages from Drive onto local disk; normal starts never install packages or replace Colab’s native GPU stack. See [Colab setup and acceptance checks](docs/colab.md); GPU acceptance is still pending.
 
 You can also change the preset in the UI. Please be aware that this may lead to timeouts after 60 seconds. If this is the case, please wait until the download has finished, change the preset to initial and back to the one you've selected or reload the page.
 

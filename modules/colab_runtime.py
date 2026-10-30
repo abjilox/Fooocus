@@ -6,46 +6,22 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-import tempfile
 import time
 
 from modules.colab_support import atomic_copy, record_timing
+from modules.colab_cache import (CacheError, SETUP_HINT, installed_packages, protected_constraints,
+                                 build_cache, restore_cache, package_environment, MARKER)
+from modules.colab_process import run_live
 
-PROTECTED = {'torch', 'torchvision', 'torchaudio', 'triton', 'numpy'}
-
-
-def installed_packages():
-    return {dist.metadata['Name'].lower().replace('_', '-'): dist.version
-            for dist in importlib.metadata.distributions() if dist.metadata['Name']}
-
-
-def protected_constraints(installed):
-    return [f'{name}=={version}' for name, version in sorted(installed.items())
-            if name in PROTECTED or name.startswith(('nvidia-', 'cuda-'))]
-
-
-def install_requirements(requirements, installed):
-    with tempfile.TemporaryDirectory(prefix='fooocus-pip-') as temporary:
-        constraints = Path(temporary) / 'constraints.txt'
-        constraints.write_text('\n'.join(protected_constraints(installed)) + '\n')
-        # Wheels only: never spend a Colab session compiling native extensions.
-        subprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:',
-                        '--constraint', str(constraints), '-r', str(requirements)], check=True)
-    after = installed_packages()
-    for name, version in installed.items():
-        if name in PROTECTED or name.startswith(('nvidia-', 'cuda-')):
-            if after.get(name) != version:
-                raise RuntimeError(f'Colab package unexpectedly changed: {name} {version} -> {after.get(name)}')
+DEFAULT_DEPENDENCIES = '/content/fooocus-deps'
 
 
 def ensure_environment(requirements):
+    """Validation only. The normal application start must never run pip."""
     from modules.launch_util import requirements_met
-    if requirements_met(str(requirements)):
-        print('[Colab] Requirements satisfied; no installation needed.')
-        return
-    install_requirements(requirements, installed_packages())
     if not requirements_met(str(requirements)):
-        raise RuntimeError('Colab requirements are still not satisfied after installation.')
+        raise CacheError(f'Prepared packages do not satisfy the application profile. {SETUP_HINT}')
+    print('[Colab] Prepared packages verified; no installation.', flush=True)
 
 
 def check_runtime():
@@ -108,28 +84,58 @@ def prepare_paths(repo, drive_root=None):
     return env
 
 
-def prepare(repo, state_file, drive_root=None):
+def _state(repo, state_file, drive_root, dependency_dir):
+    env = prepare_paths(repo, drive_root)
+    env.update(FOOOCUS_DEPENDENCY_DIR=str(Path(dependency_dir).resolve()),
+               FOOOCUS_COLAB_STARTED=str(time.time()),
+               FOOOCUS_COLAB_TIMINGS=str(Path(state_file).with_suffix('.timings.jsonl')))
+    python_env = package_environment(dependency_dir, repo)
+    env.update(PYTHONPATH=python_env['PYTHONPATH'], PYTHONUNBUFFERED='1')
+    Path(state_file).parent.mkdir(parents=True, exist_ok=True)
+    revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    state = {'repo': str(Path(repo).resolve()), 'revision': revision, 'env': env}
+    Path(state_file).write_text(json.dumps(state, indent=2))
+    return state
+
+
+def _cache_root(repo, drive_root):
+    return Path(drive_root if drive_root else repo) / 'cache/python'
+
+
+def prepare(repo, state_file, drive_root=None, dependency_dir=DEFAULT_DEPENDENCIES, rebuild=False):
     started = time.time()
     check_runtime()
-    env = prepare_paths(repo, drive_root)
-    env.update(FOOOCUS_COLAB_STARTED=str(started), FOOOCUS_COLAB_TIMINGS=str(Path(state_file).with_suffix('.timings.jsonl')))
-    os.environ.update(env)
-    ensure_environment(env['REQS_FILE'])
-    record_timing('environment_ready')
-    packages = installed_packages()
+    # Check the mount before doing any one-time package work.
+    prepare_paths(repo, drive_root)
+    requirements = Path(repo) / 'requirements_colab.txt'
+    build_cache(requirements, dependency_dir, _cache_root(repo, drive_root), repo, rebuild=rebuild)
+    state = _state(repo, state_file, drive_root, dependency_dir)
+    os.environ.update(state['env'])
+    os.environ['FOOOCUS_COLAB_STARTED'] = str(started)
+    record_timing('package_cache_ready')
+    manifest = json.loads((Path(dependency_dir) / MARKER).read_text())
+    packages = dict(installed_packages(), **manifest['additions'])
     Path(state_file).with_suffix('.packages.json').write_text(json.dumps(packages, indent=2, sort_keys=True))
-    revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
-    Path(state_file).write_text(json.dumps({'repo': str(Path(repo).resolve()), 'revision': revision, 'env': env}, indent=2))
-    print('[Colab] Setup complete. Run the Start cell.')
+    print('[Colab] One-time setup complete. Next sessions: Konfiguration, then Start.', flush=True)
 
 
-def start(state_file, extra_args=()):
-    state = json.loads(Path(state_file).read_text())
+def start(state_file, extra_args=(), repo=None, drive_root=None, dependency_dir=DEFAULT_DEPENDENCIES):
+    # CLI callers supply the checkout and mount directly: a fresh VM needs no state file.
+    if repo is None:
+        try:
+            previous = json.loads(Path(state_file).read_text())
+        except (OSError, ValueError) as error:
+            raise CacheError(f'No checkout was supplied. {SETUP_HINT}') from error
+        repo = previous['repo']
+        drive_root = previous['env'].get('FOOOCUS_DRIVE_ROOT')
+        dependency_dir = previous['env'].get('FOOOCUS_DEPENDENCY_DIR', dependency_dir)
+    requirements = Path(repo) / 'requirements_colab.txt'
+    restore_cache(requirements, dependency_dir, _cache_root(repo, drive_root))
+    state = _state(repo, state_file, drive_root, dependency_dir)
     env = os.environ.copy()
-    # Do not inherit Drive paths from a previous prepare without Drive.
     for key in ('FOOOCUS_DRIVE_ROOT', 'FOOOCUS_DRIVE_MODEL_ROOT', 'FOOOCUS_DRIVE_OUTPUT_ROOT', 'FOOOCUS_DRIVE_HF_HOME'):
         env.pop(key, None)
     env.update(state['env'])
-    env['FOOOCUS_COLAB_STARTED'] = str(time.time())
-    subprocess.run([sys.executable, 'launch.py', '--share', '--disable-xformers',
-                    '--attention-pytorch', *extra_args], cwd=state['repo'], env=env, check=True)
+    print('[Colab] Starting Fooocus with local cached packages; no pip/resolver.', flush=True)
+    run_live([sys.executable, '-u', 'launch.py', '--share', '--disable-xformers',
+              '--attention-pytorch', *extra_args], cwd=state['repo'], env=env)

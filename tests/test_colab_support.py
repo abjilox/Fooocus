@@ -104,10 +104,13 @@ class ColabInstallTests(unittest.TestCase):
         self.assertNotIn('unrelated==1.0', constraints)
 
     def test_install_failure_propagates(self):
+        from modules.colab_cache import build_cache
         error = subprocess.CalledProcessError(1, ['pip'])
         with tempfile.TemporaryDirectory() as tmp, patch('subprocess.run', side_effect=error):
+            requirements = Path(tmp) / 'requirements.txt'
+            requirements.write_text('numpy>=1\n')
             with self.assertRaises(subprocess.CalledProcessError):
-                self.runtime().install_requirements(Path(tmp) / 'requirements.txt', {'torch': '2.11.0'})
+                build_cache(requirements, Path(tmp) / 'local', Path(tmp) / 'drive', Path.cwd())
 
     def test_launcher_does_not_swallow_pip_failure(self):
         from modules.launch_util import run_pip
@@ -118,6 +121,13 @@ class ColabInstallTests(unittest.TestCase):
     def test_no_install_when_requirements_are_met(self):
         with patch('modules.launch_util.requirements_met', return_value=True), patch('subprocess.run') as run:
             self.runtime().ensure_environment(Path('requirements_colab.txt'))
+        run.assert_not_called()
+
+    def test_normal_start_validation_never_installs_on_mismatch(self):
+        from modules.colab_cache import CacheError
+        with patch('modules.launch_util.requirements_met', return_value=False), patch('subprocess.run') as run:
+            with self.assertRaisesRegex(CacheError, 'prepare'):
+                self.runtime().ensure_environment(Path('requirements_colab.txt'))
         run.assert_not_called()
 
     def test_drive_config_is_copied_without_replacing_existing_local_config(self):

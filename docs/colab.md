@@ -1,74 +1,74 @@
-# Fooocus auf Google Colab
+# Fooocus auf Colab: einmal einrichten, danach aus dem Cache starten
 
-Öffne [das Notebook aus deinem Repository](https://colab.research.google.com/github/abjilox/Fooocus/blob/better-colab/colab.ipynb). Wähle unter **Laufzeit → Laufzeittyp ändern** eine GPU und die aktuelle Python-3.13-Laufzeit. Führe zuerst **Setup**, danach **Start** aus. Für einen Neustart in derselben Sitzung genügt die Start-Zelle.
+Öffne [das Notebook aus deinem Repository](https://colab.research.google.com/github/abjilox/Fooocus/blob/better-colab/colab.ipynb) und wähle eine GPU-Laufzeit mit Python 3.13.
 
-Die Anpassung verwendet Colabs vorhandenes Python und GPU-PyTorch. Die geprüften Zusatzabhängigkeiten stehen in `requirements_colab.txt`; die Anforderungen für bisherige lokale Installationen bleiben in `requirements_versions.txt`. Der Colab-Start lädt diese alte Datei nicht nach. Die tatsächlichen Paketversionen werden beim Setup ausgegeben. Eine fehlgeschlagene Installation beendet das Setup.
+## Bedienung
 
-## Referenz und Grenzen
+**Beim ersten Mal:** Konfiguration ausführen, dann **Einrichtung / Cache erstellen**, anschließend **Start**.
 
-Referenz für die Anpassung ist Googles veröffentlichter GPU-Schnappschuss vom Oktober 2026:
+**In späteren Sitzungen:** Nur **Konfiguration** und **Start** ausführen. Die Start-Zelle funktioniert auch auf einer frisch zugeteilten Maschine ohne vorherige lokale Zustandsdatei. Sie installiert keine Pakete und startet keinen Paketresolver. Bei fehlendem oder inkompatiblem Cache nennt sie die Einrichtung als nächsten Schritt.
 
-| Bestandteil | Bisheriges Fooocus-Profil | Colab-Referenz |
-| --- | --- | --- |
-| Python | Dokumentation: 3.10 | 3.13.16 |
-| PyTorch | Installation bei Bedarf: 2.1.0 | 2.11.0+cu130 |
-| torchvision | Installation bei Bedarf: 0.16.0 | 0.26.0+cu130 |
-| NumPy | 1.26.4 | 2.4.6 |
-| Transformers | 4.42.4 | 5.22.0 |
-| Gradio | 3.41.2 | 6.31.0 |
+Die Einrichtung verwendet einen passenden vorhandenen Cache ebenfalls wieder. Mit `REBUILD_CACHE=True` lässt er sich ausdrücklich neu erstellen. Das ist nach einer Änderung des Abhängigkeitsprofils oder relevanter Colab-Pakete nötig. Reine Änderungen am Anwendungscode erzwingen keinen Neuaufbau der Pakete.
 
-Quellen: [Betriebssystem und Python](https://raw.githubusercontent.com/googlecolab/backend-info/main/os-info-gpu.txt), [GPU-Pakete](https://raw.githubusercontent.com/googlecolab/backend-info/main/pip-freeze.gpu.txt), [Hinweise zur zeitversetzten Ausrollung](https://github.com/googlecolab/backend-info). Der veröffentlichte Stand ersetzt keine Prüfung der tatsächlich zugeteilten Sitzung. Es wird keine ältere Python-Laufzeit eingerichtet und kein älteres CUDA-Paket heruntergeladen.
+## Tatsächliche Ausgangsumgebung
 
-**Die echte Colab-GPU-Abnahme ist noch offen.** Lokale Tests von Dateiverwaltung, Adaptern und kleinen Modellen ersetzen keine Bildgenerierung auf einer Colab-GPU. Die unten genannten Szenarien müssen dort durchlaufen, bevor diese Kombination als praktisch bestätigt gilt.
+Das Profil wurde auf die vom Nutzer gemeldete T4-Sitzung ausgerichtet:
 
-## Speicherorte
+| Bestandteil | Vorhandene Version |
+| --- | --- |
+| Python | 3.13.16 |
+| GPU | Tesla T4 |
+| PyTorch | 2.11.0+cu130 |
+| torchvision | 0.26.0+cu130 |
+| NumPy | 2.1.3 |
+| Transformers | 5.21.0 |
+| Gradio | 6.30.0 |
+| Tokenizers | 0.23.3 |
 
-- Programm und Python-Pakete bleiben auf der lokalen Colab-Festplatte. Eine vorhandene Programmkopie auf Drive wird nicht gelöscht oder aktualisiert.
-- Modelle liegen dauerhaft in `MyDrive/Fooocus/models`. Lege eigene Checkpoints unter `models/checkpoints`, LoRAs unter `models/loras` ab. Die Auswahl zeigt auch Drive-Modelle an; erst bei Verwendung wird eine lokale Kopie erstellt.
-- Neue Modell-Downloads werden zuerst lokal abgeschlossen und danach auf Drive gesichert. Unvollständige Dateien tragen `.partial` und gelten nicht als fertige Modelle.
-- Fertige Bilder mit eingebetteten Metadaten und das HTML-Protokoll werden unter `MyDrive/Fooocus/outputs` gesichert. Bei einem Drive-Fehler bleibt die lokale Datei erhalten; die Konsole nennt den Fehler und den lokalen Pfad. Vor dem Beenden der Laufzeit die Sicherung kontrollieren.
-- Die vorhandene Drive-Konfiguration wird beim ersten Setup übernommen. Die Modell- und Ausgabepfade werden für die aktuelle Sitzung auf lokale Ordner gesetzt. Konfiguration und Hash-Cache werden wieder auf Drive gesichert.
-- Ohne Drive bleibt die Anwendung nutzbar; lokale Modelle und Ausgaben gehen beim Löschen der Laufzeit verloren.
+Diese Versionen werden weiterverwendet. Das frühere Profil hatte NumPy ab 2.4 verlangt und gleichzeitig Änderungen an NumPy verhindert; das konnte in dieser Sitzung nicht installiert werden. Das korrigierte Profil verwendet für die Hintergrundentfernung `rembg==2.0.67`, das keine Aktualisierung auf NumPy 2.3 oder neuer verlangt. Die übrigen Mindestversionen wurden auf die tatsächlich benötigten Schnittstellen begrenzt.
 
-Für die Arbeitskopien wird ausreichend freier lokaler Speicher benötigt. Kopien prüfen den freien Platz vor dem Übertragen. Die erste Sitzung benötigt weiterhin Downloads; eine neue Sitzung benötigt die Übertragung der verwendeten Modelle von Drive. Bereits vorhandene lokale Dateien werden wiederverwendet.
+## Was einmalig geschieht
 
-## Entwicklung und Prüfungen
+Die Einrichtung ermittelt mit einem Installations-Trockenlauf ausschließlich die fehlenden oder inkompatiblen Zusatzpakete. Vorhandenes PyTorch, torchvision, torchaudio, CUDA, Triton, NumPy, Gradio und Transformers sind gegen Austausch geschützt. Es werden ausschließlich fertige Wheels verwendet; ein eigener CUDA-Unterbau wird nicht kompiliert.
 
-Die Entwicklung erfolgt auf `better-colab`. Das Notebook klont ausschließlich `abjilox/Fooocus` und aktualisiert nur per Fast-forward. Bei eigenen Änderungen oder einem anderen Repository bricht es ab, ohne Dateien zu überschreiben. Der Start führt kein automatisches Git-Update aus.
+Nur die zusätzlich benötigten Pakete werden in ein separates lokales Verzeichnis installiert. Colabs Systempakete bleiben unangetastet. Danach werden direkte und indirekte Abhängigkeiten, Imports und die Tests des Repositories geprüft. Erst nach erfolgreicher Prüfung werden Python-Dateien vorkompiliert und die Zusatzpakete als komprimiertes Archiv gespeichert.
 
-Lokale Tests aus dem Repository starten:
+Der private Cache liegt unter `MyDrive/Fooocus/cache/python`. Manifest und Prüfsumme halten fest, zu welcher Python-/Plattformumgebung, welchem Abhängigkeitsprofil und welchen tatsächlich verwendeten Colab-Paketen er passt. Modellgewichte, PyTorch und CUDA gehören nicht in dieses Paketarchiv. GitHub enthält weiterhin den Quellcode und das Profil.
+
+Ein neues Archiv erhält einen unveränderlichen Namen. Das Manifest wird erst am Ende umgeschaltet; ein abgebrochener Neuaufbau ersetzt keinen funktionierenden Cache durch eine unvollständige Datei.
+
+## Was beim normalen Start geschieht
+
+In einer neuen Sitzung wird genau ein passendes Paketarchiv lokal übertragen, anhand seiner Prüfsumme geprüft und nach `/content/fooocus-deps` entpackt. Fooocus bindet dieses Verzeichnis vor den Systempaketen ein. Pakete werden nicht direkt aus vielen einzelnen Drive-Dateien importiert. Ist die Umgebung bereits lokal bereit, entfallen auch Übertragung und Entpacken.
+
+Unterprozessausgaben werden fortlaufend in der Notebook-Zelle angezeigt. Ein Fehler zeigt damit seine eigentliche Ursache statt nur `CalledProcessError`. Beim Unterbrechen der Zelle werden auch die gestarteten Anwendungsprozesse beendet.
+
+Die verbleibende Startzeit hängt insbesondere vom Übertragen und Laden der gewählten Modelle sowie vom Gradio-Freigabedienst ab. Eine feste Zeitgarantie wird nicht behauptet.
+
+## Modelle und Ergebnisse
+
+Programm und aktive Modelle liegen lokal unter `/content/Fooocus`. Drive hält Modelle dauerhaft in `MyDrive/Fooocus/models`. Eigene Checkpoints gehören nach `models/checkpoints`, LoRAs nach `models/loras`, Text-Embeddings nach `models/embeddings`. Modelle werden aufgelistet, aber erst bei Verwendung lokal kopiert. Bereits vorhandene lokale Modelle werden wiederverwendet.
+
+Neue Downloads und Kopien werden zunächst als unvollständig behandelt und erst nach erfolgreichem Abschluss freigegeben. Fertige Bilder, eingebettete Metadaten und HTML-Protokolle werden nach `MyDrive/Fooocus/outputs` gesichert. Bei einem Drive-Schreibfehler bleibt die lokale Ausgabe erhalten; vor dem Beenden der Laufzeit muss ihre Sicherung geprüft werden.
+
+Vorhandene Drive-Programmkopien werden nicht gelöscht. Ihre Konfiguration wird beim ersten lokalen Setup übernommen; Modell- und Ausgabepfade werden für die neue Sitzung lokal gesetzt. Konfiguration und Hash-Cache werden wieder auf Drive gesichert.
+
+Ohne Drive bleiben Paket-Cache, Modelle und Ausgaben nur bis zum Löschen der Colab-Laufzeit erhalten.
+
+## Prüfung
+
+Lokale Tests mit den Abhängigkeiten des zu prüfenden Profils starten:
 
 ```sh
 python scripts/run_tests.py
 ```
 
-Der Teststarter verhindert, dass Fooocus die Kommandozeilenargumente des Testwerkzeugs als Anwendungsoptionen interpretiert. Benötigt wird eine Python-Umgebung mit den Abhängigkeiten des jeweils zu prüfenden Profils.
+Die Prüfung umfasst native NumPy-/Gradio-/Transformers-Versionen, vollständigen Oberflächenaufbau, Maskenübergaben, den tatsächlich gepatchten CLIP-Pfad sowie kleine BLIP-, GPT-2-, Sicherheits- und GroundingDINO-Modelle. Cache-Tests prüfen Wiederherstellung ohne Installer, lokale Wiederverwendung, geänderte Laufzeiten, beschädigte Archive, unterbrochene Veröffentlichung und Schutz bestehender Verzeichnisse. Prozessprüfungen kontrollieren sichtbare Ausgaben und das Beenden verschachtelter Prozesse.
 
-Validiert am 30. Oktober 2026:
+Am 31. Oktober 2026 bestanden im Linux-Container mit Python 3.13, PyTorch 2.11 CPU, NumPy 2.1.3, Transformers 5.21 und Gradio 6.30 alle **59 Tests**. Ein zusätzlicher vollständiger Cache-Durchlauf löste nur die zwei dort fehlenden Pakete auf, installierte sie getrennt, prüfte die Umgebung, veröffentlichte das Archiv und importierte es nach einer frischen Wiederherstellung erfolgreich. Kein Torch-/CUDA-/NumPy-/Gradio-/Transformers-Paket wurde dafür installiert.
 
-- Linux-Container mit Python 3.13.18, PyTorch 2.11.0+cpu, torchvision 0.26.0+cpu, NumPy 2.4.6, Transformers 5.22.1 und Gradio 6.31.0: **40 Tests bestanden**, keine übersprungen. Das vollständige Colab-Abhängigkeitsprofil ließ sich dort installieren. Zusätzlich wurde die reine Wheel-Auflösung für Linux/Python 3.13 geprüft.
-- Gradio 6.31.0: Oberfläche mit 336 Komponenten und 77 Ereignissen aufgebaut; öffentliche Dateirouten und Maskenübergaben geprüft. Die bisherige Gradio-3.41-Oberfläche lässt sich ebenfalls aufbauen.
-- Kleine Offline-Modelle prüfen CLIP einschließlich des tatsächlich gepatchten Fooocus-Pfads und Checkpoint-Schlüsseln, BLIP-Textgenerierung, GPT-2-Gewichtsladen und Generierung, Sicherheitsprüfung sowie GroundingDINO ohne eigene CUDA-Kompilierung.
-- Drive-Verhalten wurde mit lokalen temporären Ordnern geprüft: gezielte Modellkopien einschließlich FaceSwap und Text-Embeddings, Wiederverwendung, unterbrochene Übertragungen, Speicherknappheit und Erhalt lokaler Ausgaben bei Schreibfehlern.
+Die Paket-Einrichtung einschließlich Tests dauerte in dieser vorbereiteten Testumgebung rund 68 Sekunden; die Wiederherstellung vom simulierten Drive-Verzeichnis rund 4 Sekunden, lokale Wiederverwendung etwa 0,2 Sekunden. Das sind lokale Linux-Messwerte für den Paket-Cache, keine zugesagte Colab-Gesamtstartzeit und keine Messung einer echten Drive-Verbindung. Die bisherige lokale Umgebung bestand ebenfalls die Tests; vier Prüfungen für moderne Bibliotheken wurden dort übersprungen.
 
-Diese Prüfungen verwenden kleine Modelle und simulieren Drive über Verzeichnisse. Große Modellgewichte, echte Drive-Verbindungen, Browsergesten und CUDA-Bildgenerierung sind damit nicht abgenommen.
+Die unabhängige Codeprüfung und Linux-CPU-Tests ersetzen keine vollständige Colab-GPU-Abnahme. Auf der echten T4 sind weiterhin zu messen: einmalige Einrichtung, neue Sitzung mit Drive-Cache, erneuter Start derselben Sitzung und erstes Bild mit vorhandenen großen Modellgewichten.
 
-## Colab-Abnahme
-
-In einer frisch zugeteilten aktuellen GPU-Laufzeit prüfen und die gedruckten Versionsstände festhalten:
-
-1. Setup und Start; die Gradio-Freigabe öffnen. PyTorch, torchvision und CUDA-Pakete dürfen nicht ersetzt werden.
-2. Mit dem Standardmodell ein Bild erzeugen, Prompt-Erweiterung und eine LoRA verwenden. Bild und Metadaten auf Drive kontrollieren.
-3. Bildvorschlag, Variation/Upscaling, gezeichnete und hochgeladene Inpainting-Masken, automatische Masken, Bildbeschreibung und Metadatenimport ausprobieren.
-4. Start erneut ausführen: keine Paketinstallation und keine vollständige Modellkopie für bereits lokal vorhandene Modelle.
-5. Laufzeit löschen, neu verbinden und erneut starten: benötigte Modelle aus Drive übernehmen, andere Checkpoints noch nicht kopieren.
-6. Einen Download beziehungsweise eine Drive-Kopie unterbrechen und erneut versuchen. Eine unvollständige Datei darf nicht als fertiges Modell geladen werden.
-
-Die Konsole meldet `environment_ready`, `models_ready`, `ui_initialized` und `first_image_saved`. Zusätzlich schreibt der Start Zeitmessungen nach `/content/fooocus-colab-state.timings.jsonl`. Die installierten Paketversionen stehen nach dem Setup in `/content/fooocus-colab-state.packages.json`; die Zustandsdatei enthält auch den verwendeten Git-Commit. Setup einschließlich Git-Aktualisierung wird separat gemessen. Netzwerk- und GPU-Zuteilung variieren; es gibt keine feste Zeitgarantie.
-
-| Messung | Status |
-| --- | --- |
-| Einrichtung einer frischen Colab-Sitzung | Noch nicht auf Colab gemessen |
-| Oberfläche und erstes Bild | Noch nicht auf Colab gemessen |
-| Wiederholter Start derselben Sitzung | Noch nicht auf Colab gemessen |
-| Neue Sitzung mit vorhandenen Drive-Modellen | Noch nicht auf Colab gemessen |
+Die Konsole zeigt Cache-Übertragung und Entpacken getrennt sowie die Phasen `environment_ready`, `models_ready`, `ui_initialized` und `first_image_saved`. Zeitmessungen stehen unter `/content/fooocus-colab-state.timings.jsonl`; die Einrichtung schreibt die Paketstände nach `/content/fooocus-colab-state.packages.json`.

@@ -31,6 +31,8 @@ def prepare_environment():
         from modules.colab_runtime import check_runtime, ensure_environment
         check_runtime()
         ensure_environment(os.environ.get('REQS_FILE', 'requirements_colab.txt'))
+        from modules.colab_support import record_timing
+        record_timing('environment_ready')
         return
     torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu121")
     torch_command = os.environ.get('TORCH_COMMAND',
