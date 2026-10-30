@@ -3,7 +3,7 @@ import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-import gradio as gr
+from modules.gradio_compat import gr
 from PIL import Image
 
 import fooocus_version

@@ -1,4 +1,4 @@
-import gradio as gr
+from modules.gradio_compat import gr, MODERN
 import random
 import os
 import json
@@ -20,7 +20,7 @@ from extras.inpaint_mask import SAMOptions
 
 from modules.sdxl_styles import legal_style_names
 from modules.private_logger import get_current_html_path
-from modules.ui_gradio_extensions import reload_javascript
+from modules.ui_gradio_extensions import reload_javascript, launch_kwargs, static_paths
 from modules.auth import auth_enabled, check_auth
 from modules.util import is_json
 
@@ -613,7 +613,8 @@ with shared.gradio_root:
                     if args_manager.args.disable_image_log:
                         return gr.update(value='')
 
-                    return gr.update(value=f'<a href="file={get_current_html_path(output_format)}" target="_blank">\U0001F4DA History Log</a>')
+                    file_route = "/gradio_api/file=" if MODERN else "file="
+                    return gr.update(value=f'<a href="{file_route}{get_current_html_path(output_format)}" target="_blank">\U0001F4DA History Log</a>')
 
                 history_link = gr.HTML()
                 shared.gradio_root.load(update_history_link, outputs=history_link, queue=False, show_progress=False)
@@ -1117,12 +1118,17 @@ def dump_default_english_config():
 
 # dump_default_english_config()
 
+if os.environ.get("FOOOCUS_COLAB") == "1":
+    from modules.colab_support import record_timing
+    record_timing("ui_initialized")
+
 shared.gradio_root.launch(
     inbrowser=args_manager.args.in_browser,
     server_name=args_manager.args.listen,
     server_port=args_manager.args.port,
     share=args_manager.args.share,
     auth=check_auth if (args_manager.args.share or args_manager.args.listen) and auth_enabled else None,
-    allowed_paths=[modules.config.path_outputs],
-    blocked_paths=[constants.AUTH_FILENAME]
+    allowed_paths=[modules.config.path_outputs] + (static_paths() if MODERN else []),
+    blocked_paths=[constants.AUTH_FILENAME],
+    **launch_kwargs()
 )

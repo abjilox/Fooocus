@@ -27,6 +27,11 @@ TRY_INSTALL_XFORMERS = False
 
 
 def prepare_environment():
+    if os.environ.get('FOOOCUS_COLAB') == '1':
+        from modules.colab_runtime import check_runtime, ensure_environment
+        check_runtime()
+        ensure_environment(os.environ.get('REQS_FILE', 'requirements_colab.txt'))
+        return
     torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu121")
     torch_command = os.environ.get('TORCH_COMMAND',
                                    f"pip install torch==2.1.0 torchvision==0.16.0 --extra-index-url {torch_index_url}")
@@ -149,5 +154,10 @@ if os.environ.get('SKIP_DOWNLOAD_MODELS', 'false') != 'true':
 
 config.update_files()
 init_cache(config.model_filenames, config.paths_checkpoints, config.lora_filenames, config.paths_loras)
+
+if os.environ.get('FOOOCUS_COLAB') == '1':
+    from modules.colab_support import record_timing, persist_runtime_files
+    persist_runtime_files()
+    record_timing('models_ready')
 
 from webui import *

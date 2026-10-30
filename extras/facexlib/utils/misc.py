@@ -2,8 +2,7 @@ import cv2
 import os
 import os.path as osp
 import torch
-from torch.hub import download_url_to_file, get_dir
-from urllib.parse import urlparse
+from torch.hub import get_dir
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -65,17 +64,8 @@ def load_file_from_url(url, model_dir=None, progress=True, file_name=None, save_
 
     if save_dir is None:
         save_dir = os.path.join(ROOT_DIR, model_dir)
-    os.makedirs(save_dir, exist_ok=True)
-
-    parts = urlparse(url)
-    filename = os.path.basename(parts.path)
-    if file_name is not None:
-        filename = file_name
-    cached_file = os.path.abspath(os.path.join(save_dir, filename))
-    if not os.path.exists(cached_file):
-        print(f'Downloading: "{url}" to {cached_file}\n')
-        download_url_to_file(url, cached_file, hash_prefix=None, progress=progress)
-    return cached_file
+    from modules.model_loader import load_file_from_url as load_model
+    return load_model(url, model_dir=save_dir, progress=progress, file_name=file_name)
 
 
 def scandir(dir_path, suffix=None, recursive=False, full_path=False):

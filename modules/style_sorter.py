@@ -1,5 +1,5 @@
 import os
-import gradio as gr
+from modules.gradio_compat import gr
 import modules.localization as localization
 import json
 

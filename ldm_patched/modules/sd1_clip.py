@@ -274,14 +274,20 @@ def safe_load_embed_zip(embed_path):
                 return out
 
 def expand_directory_list(directories):
+    from modules.colab_support import drive_model_path
     dirs = set()
     for x in directories:
         dirs.add(x)
         for root, subdir, file in os.walk(x, followlinks=True):
             dirs.add(root)
+        drive_directory = drive_model_path(x)
+        if drive_directory is not None:
+            for root, subdir, file in os.walk(drive_directory):
+                dirs.add(os.path.join(x, os.path.relpath(root, drive_directory)))
     return list(dirs)
 
 def load_embed(embedding_name, embedding_directory, embedding_size, embed_key=None):
+    from modules.colab_support import stage_model
     if isinstance(embedding_directory, str):
         embedding_directory = [embedding_directory]
 
@@ -296,10 +302,12 @@ def load_embed(embedding_name, embedding_directory, embedding_size, embed_key=No
                 continue
         except:
             continue
+        stage_model(embed_path)
         if not os.path.isfile(embed_path):
             extensions = ['.safetensors', '.pt', '.bin']
             for x in extensions:
                 t = embed_path + x
+                stage_model(t)
                 if os.path.isfile(t):
                     valid_file = t
                     break

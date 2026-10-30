@@ -11,6 +11,7 @@ warnings.filterwarnings("ignore")
 from extras.BLIP.models.vit import VisionTransformer, interpolate_pos_embed
 from extras.BLIP.models.med import BertConfig, BertModel, BertLMHeadModel
 from transformers import BertTokenizer
+from modules.transformers_compat import MODERN_TRANSFORMERS
 
 import torch
 from torch import nn
@@ -128,7 +129,7 @@ class BLIP_Decoder(nn.Module):
     def generate(self, image, sample=False, num_beams=3, max_length=30, min_length=10, top_p=0.9, repetition_penalty=1.0):
         image_embeds = self.visual_encoder(image)
 
-        if not sample:
+        if not sample and not MODERN_TRANSFORMERS:
             image_embeds = image_embeds.repeat_interleave(num_beams,dim=0)
             
         image_atts = torch.ones(image_embeds.size()[:-1],dtype=torch.long).to(image.device)

@@ -22,7 +22,7 @@ from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 
 from transformers.activations import ACT2FN
-from transformers.file_utils import (
+from transformers.utils import (
     ModelOutput,
 )
 from transformers.modeling_outputs import (
@@ -36,8 +36,10 @@ from transformers.modeling_outputs import (
     SequenceClassifierOutput,
     TokenClassifierOutput,
 )
-from transformers.modeling_utils import (
+from modules.transformers_compat import (
     PreTrainedModel,
+    LegacyGenerationMixin,
+    MODERN_TRANSFORMERS,
     apply_chunking_to_forward,
     find_pruneable_heads_and_indices,
     prune_linear_layer,
@@ -588,7 +590,7 @@ class BertModel(BertPreTrainedModel):
 
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
-        self.init_weights()
+        self.post_init()
  
 
     def get_input_embeddings(self):
@@ -808,7 +810,13 @@ class BertModel(BertPreTrainedModel):
 
 
 
-class BertLMHeadModel(BertPreTrainedModel):
+class BertLMHeadModel(BertPreTrainedModel, LegacyGenerationMixin):
+
+    if MODERN_TRANSFORMERS:
+        _tied_weights_keys = {
+            'cls.predictions.decoder.weight': 'bert.embeddings.word_embeddings.weight',
+            'cls.predictions.decoder.bias': 'cls.predictions.bias',
+        }
 
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
     _keys_to_ignore_on_load_missing = [r"position_ids", r"predictions.decoder.bias"]
@@ -819,7 +827,9 @@ class BertLMHeadModel(BertPreTrainedModel):
         self.bert = BertModel(config, add_pooling_layer=False)
         self.cls = BertOnlyMLMHead(config)
 
-        self.init_weights()
+        self.post_init()
+        if MODERN_TRANSFORMERS:
+            self.generation_config.use_cache = False
 
     def get_output_embeddings(self):
         return self.cls.predictions.decoder
@@ -930,6 +940,7 @@ class BertLMHeadModel(BertPreTrainedModel):
         )
 
     def prepare_inputs_for_generation(self, input_ids, past=None, attention_mask=None, **model_kwargs):
+        past = model_kwargs.get("past_key_values", past)
         input_shape = input_ids.shape
         # if model is used as a decoder in encoder-decoder model, the decoder attention mask is created on the fly
         if attention_mask is None:
@@ -943,6 +954,7 @@ class BertLMHeadModel(BertPreTrainedModel):
             "input_ids": input_ids, 
             "attention_mask": attention_mask, 
             "past_key_values": past,
+            "use_cache": False if MODERN_TRANSFORMERS else model_kwargs.get("use_cache", True),
             "encoder_hidden_states": model_kwargs.get("encoder_hidden_states", None),
             "encoder_attention_mask": model_kwargs.get("encoder_attention_mask", None),
             "is_decoder": True,

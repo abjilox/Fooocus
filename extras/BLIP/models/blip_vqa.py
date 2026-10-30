@@ -5,6 +5,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from transformers import BertTokenizer
+from modules.transformers_compat import MODERN_TRANSFORMERS
 import numpy as np
 
 class BLIP_VQA(nn.Module):
@@ -90,7 +91,9 @@ class BLIP_VQA(nn.Module):
             
             if inference=='generate':
                 num_beams = 3
-                question_states = question_output.last_hidden_state.repeat_interleave(num_beams,dim=0)
+                question_states = question_output.last_hidden_state
+                if not MODERN_TRANSFORMERS:
+                    question_states = question_states.repeat_interleave(num_beams,dim=0)
                 question_atts = torch.ones(question_states.size()[:-1],dtype=torch.long).to(question_states.device)
                 model_kwargs = {"encoder_hidden_states": question_states, "encoder_attention_mask":question_atts}
                 

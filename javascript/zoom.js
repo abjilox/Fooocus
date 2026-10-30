@@ -161,7 +161,7 @@ onUiLoaded(async() => {
             targetElement.style.transform = `scale(${elemData[elemId].zoomLevel}) translate(${elemData[elemId].panX}px, ${elemData[elemId].panY}px)`;
 
             const canvas = gradioApp().querySelector(
-                `${elemId} canvas[key="interface"]`
+                `${elemId} canvas[key="interface"], ${elemId} canvas`
             );
 
             toggleOverlap("off");
@@ -173,7 +173,7 @@ onUiLoaded(async() => {
             }
 
             if (canvas) {
-                const parentElement = targetElement.closest('[id^="component-"]');
+                const parentElement = targetElement.closest('[id^="component-"]') || targetElement.parentElement;
                 if (
                     canvas &&
                     parseFloat(canvas.style.width) > parentElement.offsetWidth &&
@@ -212,7 +212,7 @@ onUiLoaded(async() => {
         ) {
             const input =
                 gradioApp().querySelector(
-                    `${elemId} input[aria-label='Brush radius']`
+                    `${elemId} input[aria-label='Brush radius'], ${elemId} input[aria-label='Brush size']`
                 ) ||
                 gradioApp().querySelector(
                     `${elemId} button[aria-label="Use brush"]`
@@ -235,9 +235,9 @@ onUiLoaded(async() => {
 
         // Reset zoom when uploading a new image
         const fileInput = gradioApp().querySelector(
-            `${elemId} input[type="file"][accept="image/*"].svelte-116rqfv`
+            `${elemId} input[type="file"][accept*="image"]`
         );
-        fileInput.addEventListener("click", resetZoom);
+        if (fileInput) fileInput.addEventListener("click", resetZoom);
 
         // Update the zoom level and pan position of the target element based on the values of the zoomLevel, panX and panY variables
         function updateZoom(newZoomLevel, mouseX, mouseY) {
@@ -298,7 +298,7 @@ onUiLoaded(async() => {
 
             let parentElement;
 
-            parentElement = targetElement.closest('[id^="component-"]');
+            parentElement = targetElement.closest('[id^="component-"]') || targetElement.parentElement;
 
             // Get element and screen dimensions
             const elementWidth = targetElement.offsetWidth;
@@ -356,7 +356,7 @@ onUiLoaded(async() => {
         // Fullscreen mode
         function fitToScreen() {
             const canvas = gradioApp().querySelector(
-                `${elemId} canvas[key="interface"]`
+                `${elemId} canvas[key="interface"], ${elemId} canvas`
             );
 
             if (!canvas) return;
@@ -469,7 +469,7 @@ onUiLoaded(async() => {
 
         targetElement.isExpanded = false;
         function autoExpand() {
-            const canvas = document.querySelector(`${elemId} canvas[key="interface"]`);
+            const canvas = document.querySelector(`${elemId} canvas[key="interface"], ${elemId} canvas`);
             if (canvas) {
                 if (hasHorizontalScrollbar(targetElement) && targetElement.isExpanded === false) {
                     targetElement.style.visibility = "hidden";
@@ -614,7 +614,7 @@ onUiLoaded(async() => {
 
         // Checks for extension
         function checkForOutBox() {
-            const parentElement = targetElement.closest('[id^="component-"]');
+            const parentElement = targetElement.closest('[id^="component-"]') || targetElement.parentElement;
             if (parentElement.offsetWidth < targetElement.offsetWidth && !targetElement.isExpanded) {
                 resetZoom();
                 targetElement.isExpanded = true;

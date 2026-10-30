@@ -9,6 +9,7 @@ from PIL.PngImagePlugin import PngInfo
 from modules.flags import OutputFormat
 from modules.meta_parser import MetadataParser, get_exif
 from modules.util import generate_temp_filename
+from modules.colab_support import persist_output, record_timing, persist_runtime_files
 
 log_cache = {}
 
@@ -44,6 +45,13 @@ def log(img, metadata, metadata_parser: MetadataParser | None = None, output_for
         image.save(local_temp_filename, quality=95, lossless=False, exif=get_exif(parsed_parameters, metadata_parser.get_scheme().value) if metadata_parser else Image.Exif())
     else:
         image.save(local_temp_filename)
+
+    if persist_image and not args_manager.args.disable_image_log:
+        persist_output(local_temp_filename)
+        persist_runtime_files()
+    if os.environ.get('FOOOCUS_COLAB') == '1' and not log_cache.get('_first_image_timed'):
+        record_timing('first_image_saved')
+        log_cache['_first_image_timed'] = True
 
     if args_manager.args.disable_image_log:
         return local_temp_filename
@@ -129,6 +137,9 @@ def log(img, metadata, metadata_parser: MetadataParser | None = None, output_for
 
     with open(html_name, 'w', encoding='utf-8') as f:
         f.write(begin_part + middle_part + end_part)
+
+    if persist_image:
+        persist_output(html_name)
 
     print(f'Image generated with private log at: {html_name}')
 

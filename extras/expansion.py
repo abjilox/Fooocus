@@ -11,7 +11,8 @@ import math
 import ldm_patched.modules.model_management as model_management
 
 from transformers.generation.logits_process import LogitsProcessorList
-from transformers import AutoTokenizer, AutoModelForCausalLM, set_seed
+from transformers import AutoTokenizer, set_seed
+from modules.transformers_compat import load_expansion_model
 from modules.config import path_fooocus_expansion
 from ldm_patched.modules.model_patcher import ModelPatcher
 
@@ -59,7 +60,7 @@ class FooocusExpansion:
         # t198 = self.tokenizer('\n', return_tensors="np")
         # eos = self.tokenizer.eos_token_id
 
-        self.model = AutoModelForCausalLM.from_pretrained(path_fooocus_expansion)
+        self.model = load_expansion_model(path_fooocus_expansion)
         self.model.eval()
 
         load_device = model_management.text_encoder_device()

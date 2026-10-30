@@ -806,8 +806,13 @@ def get_model_filenames(folder_paths, extensions=None, name_filter=None):
         folder_paths = [folder_paths]
     for folder in folder_paths:
         files += get_files_from_folder(folder, extensions, name_filter)
+        # List persistent models without copying every checkpoint at startup.
+        from modules.colab_support import drive_model_path
+        drive_folder = drive_model_path(folder)
+        if drive_folder is not None and drive_folder.is_dir():
+            files += get_files_from_folder(str(drive_folder), extensions, name_filter)
 
-    return files
+    return sorted(set(files))
 
 
 def update_files():

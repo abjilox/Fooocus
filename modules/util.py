@@ -370,11 +370,13 @@ def get_filname_by_stem(lora_name, filenames: List[str]) -> str | None:
 
 
 def get_file_from_folder_list(name, folders):
+    from modules.colab_support import stage_model
     if not isinstance(folders, list):
         folders = [folders]
 
     for folder in folders:
         filename = os.path.abspath(os.path.realpath(os.path.join(folder, name)))
+        stage_model(filename)
         if os.path.isfile(filename):
             return filename
 

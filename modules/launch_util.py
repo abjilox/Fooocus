@@ -65,14 +65,9 @@ def run(command, desc=None, errdesc=None, custom_env=None, live: bool = default_
 
 
 def run_pip(command, desc=None, live=default_command_live):
-    try:
-        index_url_line = f' --index-url {index_url}' if index_url != '' else ''
-        return run(f'"{python}" -m pip {command} --prefer-binary{index_url_line}', desc=f"Installing {desc}",
-                   errdesc=f"Couldn't install {desc}", live=live)
-    except Exception as e:
-        print(e)
-        print(f'CMD Failed {desc}: {command}')
-        return None
+    index_url_line = f' --index-url {index_url}' if index_url != '' else ''
+    return run(f'"{python}" -m pip {command} --prefer-binary{index_url_line}', desc=f"Installing {desc}",
+               errdesc=f"Couldn't install {desc}", live=live)
 
 
 def requirements_met(requirements_file):

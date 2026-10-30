@@ -19,7 +19,8 @@ import ldm_patched.modules.clip_vision
 import ldm_patched.modules.ops as ops
 
 from modules.ops import use_patched_ops
-from transformers import CLIPTextModel, CLIPTextConfig, modeling_utils, CLIPVisionConfig, CLIPVisionModelWithProjection
+from modules.transformers_compat import FooocusCLIPTextModel, no_init_weights
+from transformers import CLIPTextConfig, CLIPVisionConfig, CLIPVisionModelWithProjection
 
 
 def patched_encode_token_weights(self, token_weight_pairs):
@@ -79,8 +80,8 @@ def patched_SDClipModel__init__(self, max_length=77, freeze=True, layer="last", 
     self.num_layers = config.num_hidden_layers
 
     with use_patched_ops(ops.manual_cast):
-        with modeling_utils.no_init_weights():
-            self.transformer = CLIPTextModel(config)
+        with no_init_weights():
+            self.transformer = FooocusCLIPTextModel(config)
 
     if dtype is not None:
         self.transformer.to(dtype)
@@ -158,7 +159,7 @@ def patched_ClipVisionModel__init__(self, json_config):
         self.dtype = torch.float32
 
     with use_patched_ops(ops.manual_cast):
-        with modeling_utils.no_init_weights():
+        with no_init_weights():
             self.model = CLIPVisionModelWithProjection(config)
 
     self.model.to(self.dtype)
@@ -174,7 +175,7 @@ def patched_ClipVisionModel_encode_image(self, image):
     pixel_values = ldm_patched.modules.clip_vision.clip_preprocess(image.to(self.load_device))
     outputs = self.model(pixel_values=pixel_values, output_hidden_states=True)
 
-    for k in outputs:
+    for k in list(outputs):
         t = outputs[k]
         if t is not None:
             if k == 'hidden_states':

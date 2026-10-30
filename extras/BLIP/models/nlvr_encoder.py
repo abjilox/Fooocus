@@ -12,7 +12,7 @@ from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 
 from transformers.activations import ACT2FN
-from transformers.file_utils import (
+from transformers.utils import (
     ModelOutput,
 )
 from transformers.modeling_outputs import (
@@ -26,7 +26,7 @@ from transformers.modeling_outputs import (
     SequenceClassifierOutput,
     TokenClassifierOutput,
 )
-from transformers.modeling_utils import (
+from modules.transformers_compat import (
     PreTrainedModel,
     apply_chunking_to_forward,
     find_pruneable_heads_and_indices,
@@ -623,7 +623,7 @@ class BertModel(BertPreTrainedModel):
 
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
-        self.init_weights()
+        self.post_init()
  
 
     def get_input_embeddings(self):

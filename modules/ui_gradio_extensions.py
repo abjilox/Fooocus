@@ -3,17 +3,23 @@
 import os
 import gradio as gr
 import args_manager
+from pathlib import Path
+from urllib.parse import quote
+from modules.gradio_compat import MODERN
 
 from modules.localization import localization_js
 
 
-GradioTemplateResponseOriginal = gr.routes.templates.TemplateResponse
+GradioTemplateResponseOriginal = None if MODERN else gr.routes.templates.TemplateResponse
 
 modules_path = os.path.dirname(os.path.realpath(__file__))
 script_path = os.path.dirname(modules_path)
 
 
 def webpath(fn):
+    if MODERN:
+        path = Path(fn).resolve()
+        return f"/gradio_api/file={quote(str(path), safe='/')}?{path.stat().st_mtime_ns}"
     if fn.startswith(script_path):
         web_path = os.path.relpath(fn, script_path).replace('\\', '/')
     else:
@@ -53,7 +59,20 @@ def css_html():
     return head
 
 
+def static_paths():
+    """Expose only UI assets, never the repository or its configuration."""
+    return [str(Path(script_path, name).resolve()) for name in ("javascript", "css", "sdxl_styles/samples")]
+
+
+def launch_kwargs():
+    if not MODERN:
+        return {}
+    return {"head": javascript_html(), "css": Path(script_path, "css/style.css").read_text(encoding="utf-8")}
+
+
 def reload_javascript():
+    if MODERN:
+        return
     js = javascript_html()
     css = css_html()
 
