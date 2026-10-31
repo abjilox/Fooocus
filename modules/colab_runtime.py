@@ -52,13 +52,38 @@ MODEL_PATHS = {
 }
 
 
+MODEL_RESOURCES = {
+    'prompt_expansion/fooocus_expansion': (
+        'config.json', 'merges.txt', 'positive.txt', 'special_tokens_map.json',
+        'tokenizer.json', 'tokenizer_config.json', 'vocab.json',
+    ),
+    'clip_vision': ('wd-v1-4-moat-tagger-v2.csv',),
+}
+
+
+def seed_model_resources(repo, models):
+    """Supply missing packaged text resources; never copy checkpoint weights."""
+    for folder, filenames in MODEL_RESOURCES.items():
+        for filename in filenames:
+            source = repo / 'models' / folder / filename
+            destination = models / folder / filename
+            if source.is_file() and not destination.exists():
+                atomic_copy(source, destination)
+
+
 def prepare_paths(repo, drive_root=None):
     repo = Path(repo).resolve()
-    models, outputs = repo / 'models', repo / 'outputs'
+    if drive_root:
+        drive_root = Path(drive_root).resolve()
+        if not drive_root.parent.is_dir():
+            raise RuntimeError('Google Drive is not mounted. Run the Drive mount cell first.')
+        drive_root.mkdir(exist_ok=True)
+    storage = drive_root if drive_root else repo
+    models, outputs = storage / 'models', repo / 'outputs'
     env = {'FOOOCUS_COLAB': '1', 'FOOOCUS_MODEL_ROOT': str(models),
            'FOOOCUS_REPO_ROOT': str(repo),
            'FOOOCUS_OUTPUT_ROOT': str(outputs), 'path_outputs': str(outputs),
-           'HF_HOME': str(repo / 'cache/huggingface'),
+           'HF_HOME': str(storage / 'cache/huggingface'),
            'REQS_FILE': str(repo / 'requirements_colab.txt'), 'GRADIO_ANALYTICS_ENABLED': 'False'}
     for key, folder in MODEL_PATHS.items():
         path = models / folder
@@ -67,14 +92,12 @@ def prepare_paths(repo, drive_root=None):
     outputs.mkdir(exist_ok=True)
     env['config_path'] = str(repo / 'config.txt')
     if drive_root:
-        drive_root = Path(drive_root)
-        if not drive_root.parent.is_dir():
-            raise RuntimeError('Google Drive is not mounted. Run the Drive mount cell first.')
-        drive_root.mkdir(exist_ok=True)
+        seed_model_resources(repo, models)
         env.update(FOOOCUS_DRIVE_MODEL_ROOT=str(drive_root / 'models'),
                    FOOOCUS_DRIVE_ROOT=str(drive_root),
                    FOOOCUS_DRIVE_OUTPUT_ROOT=str(drive_root / 'outputs'),
                    FOOOCUS_DRIVE_HF_HOME=str(drive_root / 'cache/huggingface'))
+        print('[Colab] Loading models directly from Google Drive; no local model copies.', flush=True)
         config = drive_root / 'config.txt'
         if config.is_file() and not (repo / 'config.txt').exists():
             atomic_copy(config, repo / 'config.txt')

@@ -138,11 +138,50 @@ class ColabInstallTests(unittest.TestCase):
             (drive / 'config.txt').write_text('{"default_model": "mine.safetensors"}')
             env = self.runtime().prepare_paths(repo, drive)
             self.assertEqual((repo / 'config.txt').read_text(), (drive / 'config.txt').read_text())
-            self.assertEqual(env['path_checkpoints'], str(repo.resolve() / 'models/checkpoints'))
-            self.assertEqual(env['path_sam'], str(repo.resolve() / 'models/sam'))
+            self.assertEqual(env['path_checkpoints'], str(drive.resolve() / 'models/checkpoints'))
+            self.assertEqual(env['path_sam'], str(drive.resolve() / 'models/sam'))
             (repo / 'config.txt').write_text('local config')
             self.runtime().prepare_paths(repo, drive)
             self.assertEqual((repo / 'config.txt').read_text(), 'local config')
+
+    def test_drive_models_and_huggingface_cache_are_used_directly(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, drive = Path(tmp) / 'repo', Path(tmp) / 'drive/Fooocus'
+            repo.mkdir()
+            drive.mkdir(parents=True)
+            env = self.runtime().prepare_paths(repo, drive)
+            for key, folder in self.runtime().MODEL_PATHS.items():
+                self.assertEqual(Path(env[key]), drive.resolve() / 'models' / folder)
+            self.assertEqual(Path(env['HF_HOME']), drive.resolve() / 'cache/huggingface')
+            self.assertFalse((repo / 'models/checkpoints').exists())
+            from modules import colab_support
+            with patch.dict(os.environ, env), patch('modules.colab_support.stage_tree', side_effect=AssertionError('cache copied')):
+                colab_support.stage_hf_cache()
+                colab_support.persist_hf_cache()
+                self.assertIsNone(colab_support.drive_model_path(env['path_checkpoints']))
+
+    def test_no_drive_keeps_local_model_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            env = self.runtime().prepare_paths(repo)
+            self.assertEqual(Path(env['path_checkpoints']), repo.resolve() / 'models/checkpoints')
+            self.assertEqual(Path(env['HF_HOME']), repo.resolve() / 'cache/huggingface')
+
+    def test_only_missing_packaged_resources_are_seeded_not_weights(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, drive = Path(tmp) / 'repo', Path(tmp) / 'drive/Fooocus'
+            resource = repo / 'models/prompt_expansion/fooocus_expansion'
+            resource.mkdir(parents=True)
+            (resource / 'config.json').write_text('{"model_type":"gpt2"}')
+            (resource / 'pytorch_model.bin').write_bytes(b'must not copy')
+            drive.mkdir(parents=True)
+            self.runtime().prepare_paths(repo, drive)
+            destination = drive / 'models/prompt_expansion/fooocus_expansion'
+            self.assertEqual((destination / 'config.json').read_text(), '{"model_type":"gpt2"}')
+            self.assertFalse((destination / 'pytorch_model.bin').exists())
+            (destination / 'config.json').write_text('custom configuration')
+            self.runtime().prepare_paths(repo, drive)
+            self.assertEqual((destination / 'config.json').read_text(), 'custom configuration')
 
     def test_cpu_runtime_stops_before_install(self):
         from types import ModuleType, SimpleNamespace
@@ -158,6 +197,17 @@ class ColabInstallTests(unittest.TestCase):
 
 
 class ModelDownloadTests(unittest.TestCase):
+    def test_direct_drive_model_never_copies_or_downloads(self):
+        from modules.model_loader import load_file_from_url
+        with tempfile.TemporaryDirectory() as tmp:
+            models = Path(tmp) / 'drive/models'
+            models.mkdir(parents=True)
+            (models / 'model').write_bytes(b'existing weights')
+            env = {'FOOOCUS_MODEL_ROOT': str(models), 'FOOOCUS_DRIVE_MODEL_ROOT': str(models)}
+            with patch.dict(os.environ, env), patch('shutil.copy2', side_effect=AssertionError('model copied')):
+                result = load_file_from_url('https://example.org/model', model_dir=str(models))
+            self.assertEqual(Path(result), models / 'model')
+
     def test_textual_embedding_is_staged_on_demand_from_nested_drive_folder(self):
         import ast
         import traceback

@@ -43,11 +43,11 @@ In einer neuen Sitzung wird genau ein passendes Paketarchiv lokal übertragen, a
 
 Unterprozessausgaben werden fortlaufend in der Notebook-Zelle angezeigt. Ein Fehler zeigt damit seine eigentliche Ursache statt nur `CalledProcessError`. Beim Unterbrechen der Zelle werden auch die gestarteten Anwendungsprozesse beendet.
 
-Die verbleibende Startzeit hängt insbesondere vom Übertragen und Laden der gewählten Modelle sowie vom Gradio-Freigabedienst ab. Eine feste Zeitgarantie wird nicht behauptet.
+Die verbleibende Startzeit hängt insbesondere vom Einlesen der gewählten Modelle von Drive in den Arbeitsspeicher und GPU-Speicher sowie vom Gradio-Freigabedienst ab. Es werden keine vollständigen Modellkopien auf der lokalen Festplatte angelegt. Eine feste Zeitgarantie wird nicht behauptet.
 
 ## Modelle und Ergebnisse
 
-Programm und aktive Modelle liegen lokal unter `/content/Fooocus`. Drive hält Modelle dauerhaft in `MyDrive/Fooocus/models`. Eigene Checkpoints gehören nach `models/checkpoints`, LoRAs nach `models/loras`, Text-Embeddings nach `models/embeddings`. Modelle werden aufgelistet, aber erst bei Verwendung lokal kopiert. Bereits vorhandene lokale Modelle werden wiederverwendet.
+Das Programm bleibt lokal unter `/content/Fooocus`. Sämtliche Modellpfade zeigen bei verbundenem Drive direkt auf `MyDrive/Fooocus/models`; auch der Hugging-Face-Modellcache wird direkt von Drive verwendet. Eigene Checkpoints gehören nach `models/checkpoints`, LoRAs nach `models/loras`, Text-Embeddings nach `models/embeddings`. Vorhandene Gewichte werden ohne vorherige lokale Kopie geladen. Fehlende Gewichte werden direkt in das jeweilige Drive-Verzeichnis heruntergeladen. Nur fehlende kleine mitgelieferte Tokenizer-/Konfigurationsdateien und die Tagger-Tabelle werden beim ersten Start ergänzt; bestehende Dateien werden nicht überschrieben. Der separate Paket-Cache wird weiterhin lokal entpackt. Diese Änderung erfordert keinen Neuaufbau des Paket-Caches.
 
 Neue Downloads und Kopien werden zunächst als unvollständig behandelt und erst nach erfolgreichem Abschluss freigegeben. Fertige Bilder, eingebettete Metadaten und HTML-Protokolle werden nach `MyDrive/Fooocus/outputs` gesichert. Bei einem Drive-Schreibfehler bleibt die lokale Ausgabe erhalten; vor dem Beenden der Laufzeit muss ihre Sicherung geprüft werden.
 

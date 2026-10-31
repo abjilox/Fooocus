@@ -46,6 +46,8 @@ def drive_model_path(local_path):
     drive_root = os.environ.get('FOOOCUS_DRIVE_MODEL_ROOT')
     if not local_root or not drive_root:
         return None
+    if Path(local_root).resolve() == Path(drive_root).resolve():
+        return None
     try:
         relative = Path(local_path).resolve().relative_to(Path(local_root).resolve())
     except ValueError:
@@ -93,14 +95,14 @@ def persist_output(filename):
 def stage_hf_cache():
     local = os.environ.get('HF_HOME')
     drive = os.environ.get('FOOOCUS_DRIVE_HF_HOME')
-    if local and drive:
+    if local and drive and Path(local).resolve() != Path(drive).resolve():
         stage_tree(drive, local)
 
 
 def persist_hf_cache():
     local = os.environ.get('HF_HOME')
     drive = os.environ.get('FOOOCUS_DRIVE_HF_HOME')
-    if local and drive:
+    if local and drive and Path(local).resolve() != Path(drive).resolve():
         try:
             stage_tree(local, drive)
         except OSError as error:
